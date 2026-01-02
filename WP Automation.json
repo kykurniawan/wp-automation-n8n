@@ -1,0 +1,579 @@
+{
+  "name": "WP Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        -240
+      ],
+      "id": "a0aae168-50e6-43c9-ac85-f39e838166bf",
+      "name": "manual-trigger",
+      "retryOnFail": true,
+      "maxTries": 2
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.googleTrendUrl }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -352,
+        -240
+      ],
+      "id": "0fd3f1ca-8cd7-4b09-a377-fada28aaf6e6",
+      "name": "google-trend-rss",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolWikipedia",
+      "typeVersion": 1,
+      "position": [
+        320,
+        240
+      ],
+      "id": "8f1d273e-6308-490f-b759-eb276703a645",
+      "name": "wikipedia"
+    },
+    {
+      "parameters": {
+        "title": "={{ $json.output.title }}",
+        "additionalFields": {
+          "authorId": 1,
+          "content": "={{ $json.output.content }}",
+          "status": "publish",
+          "categories": "={{ [$json.output.categoryId] }}"
+        }
+      },
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        656,
+        -240
+      ],
+      "id": "3ae83000-e6c0-4add-8f52-a788be8395f8",
+      "name": "create-post",
+      "credentials": {
+        "wordpressApi": {
+          "id": "Q2iaM7ilhD1ms2mO",
+          "name": "Wordpress account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "wp-automation@example.com",
+        "toEmail": "wp-admin@example.com",
+        "subject": "=New blog post: {{ $json.title.rendered }} was published!",
+        "html": "=<p>New blog post with title: {{ $json.title.rendered }} was successfully published on {{ $('preparation').item.json.wordpressUrl }}</p>\n\n<p><a href=\"{{ $json.guid.rendered }}\">See Post</a></p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        832,
+        -80
+      ],
+      "id": "bede5bdf-6bef-4ed0-9531-141b8abab03a",
+      "name": "Send email",
+      "webhookId": "766f61c7-420c-4c35-9b1a-360edd4e54c4",
+      "credentials": {
+        "smtp": {
+          "id": "Pp2ZLxNNoNAWldDD",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        64
+      ],
+      "id": "f222d8c8-8bc8-4408-a2d5-b0fe7699f0b6",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Create categories",
+        "method": "POST",
+        "url": "={{ $('preparation').item.json.wordpressUrl }}/wp-json/wp/v2/categories",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', ``, 'string') }}"
+            }
+          ]
+        },
+        "options": {},
+        "optimizeResponse": true,
+        "fieldsToInclude": "selected",
+        "fields": "id"
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        464,
+        208
+      ],
+      "id": "74a0e0fc-c895-426f-8bc3-17e3182e8762",
+      "name": "create-categories",
+      "credentials": {
+        "wordpressApi": {
+          "id": "Q2iaM7ilhD1ms2mO",
+          "name": "Wordpress account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 10,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        -64
+      ],
+      "id": "cac47422-1b68-421e-89d8-924e3623c78f",
+      "name": "get-existing-posts",
+      "credentials": {
+        "wordpressApi": {
+          "id": "Q2iaM7ilhD1ms2mO",
+          "name": "Wordpress account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "title.rendered",
+              "renameField": true,
+              "outputFieldName": "titles"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        -64
+      ],
+      "id": "1aebe5fa-4eeb-44d1-86ca-243cf5fdf693",
+      "name": "collect-existing-titles"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "title",
+              "renameField": true,
+              "outputFieldName": "topics"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        -240
+      ],
+      "id": "2fcec748-b002-40fe-8465-346bb4e79bf0",
+      "name": "collect-topics"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.wordpressUrl }}/wp-json/wp/v2/categories",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -352,
+        128
+      ],
+      "id": "37c5f203-7b38-4241-9cfb-3ad2f7c1aa5b",
+      "name": "get-existing-categories",
+      "credentials": {
+        "wordpressApi": {
+          "id": "Q2iaM7ilhD1ms2mO",
+          "name": "Wordpress account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "categories",
+        "include": "specifiedFields",
+        "fieldsToInclude": "id, name",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        128
+      ],
+      "id": "a525e3da-a44b-45f0-b0a6-cb073c25316b",
+      "name": "collect-existing-categories"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        128,
+        -80
+      ],
+      "id": "f42c8490-0ec9-412f-886d-34b728c6b521",
+      "name": "collect"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Based on this topics: [{{ $json.topics }}]\n\nPick one best topic for new blog post topic and create a title with this rules:\n- avoid topic with specific subject or object\n- avoid topic that already related to these existing posts: [{{ $json.titles }}]\n- use engaging post title\n- response with the post title only without additional text\n- use `get-existing-posts` to ensure the selected topic or title already posted on the blog with related title. if it exists, choose another one and check again until you get a new unique post title.\n\nBased on the created title and choosen topic, pick the best related category id from this categories:\n{{ $json.categories.map(c => `[id: ${c.id}, name: ${c.name}]`) }}\n\nIf there are no best related category id, create your expected category with `create-category` tool. then get the id from the tool result. Ensure to use simple and max two words count.\n\nAfter have category id and title, Write a comprehensive content with:\n- Minimum 1000 words\n- Casual, friendly, and easy-to-understand writing style\n- Engaging introduction that hooks the reader\n- Smooth storytelling flow\n- Clear explanations and real-life examples\n- Subheadings for each section\n- Factual, helpful, and informative content\n- A strong conclusion or takeaway at the end\n- Always use `wikipedia` tool to ensure the information is valid and make the content more details\n- Dont mention if you can't found any information in the wikipedia\n- The content should use html format (just use the tags that only inside <body> tag)\n\nAfter have category id, title, and content, return your response in a valid json format bellow:\n{\n  \"title\": the title,\n  \"categoryId\": the id,\n  \"content\": the content\n}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        336,
+        -64
+      ],
+      "id": "402f7f17-f92e-4976-af35-20e31dfd9296",
+      "name": "content-creation"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        192,
+        384
+      ],
+      "id": "dbeb4ad3-3084-4294-b3be-d38192609f8c",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "XiwdcLzmEucr68LZ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"title\": \"a title\",\n  \"categoryId\": 1,\n  \"content\": \"content...\"\n}",
+        "autoFix": true,
+        "customizeRetryPrompt": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        368
+      ],
+      "id": "0f4dd5e5-98b3-4c10-a94d-b134870c20a9",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9baa2d5e-3c5c-4a63-aa11-7ebbb13c9db5",
+              "name": "wordpressUrl",
+              "value": "http://wordpress.orb.local",
+              "type": "string"
+            },
+            {
+              "id": "904c9dd3-641e-41da-89d5-eba3becbf2f2",
+              "name": "googleTrendUrl",
+              "value": "https://trends.google.com/trending/rss?geo=ID",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -592,
+        -240
+      ],
+      "id": "67167789-454a-4409-8908-2b3ed430c4a2",
+      "name": "preparation"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -752,
+        -64
+      ],
+      "id": "026d1840-0125-46cc-9c2d-1694aee333e6",
+      "name": "Schedule Trigger",
+      "retryOnFail": true,
+      "maxTries": 2
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "manual-trigger": {
+      "main": [
+        [
+          {
+            "node": "preparation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google-trend-rss": {
+      "main": [
+        [
+          {
+            "node": "collect-topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "wikipedia": {
+      "ai_tool": [
+        [
+          {
+            "node": "content-creation",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create-post": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create-categories": {
+      "ai_tool": [
+        [
+          {
+            "node": "content-creation",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get-existing-posts": {
+      "main": [
+        [
+          {
+            "node": "collect-existing-titles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get-existing-categories": {
+      "main": [
+        [
+          {
+            "node": "collect-existing-categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "collect-topics": {
+      "main": [
+        [
+          {
+            "node": "collect",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "collect-existing-titles": {
+      "main": [
+        [
+          {
+            "node": "collect",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "collect-existing-categories": {
+      "main": [
+        [
+          {
+            "node": "collect",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "collect": {
+      "main": [
+        [
+          {
+            "node": "content-creation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "content-creation",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "content-creation",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "content-creation": {
+      "main": [
+        [
+          {
+            "node": "create-post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "preparation": {
+      "main": [
+        [
+          {
+            "node": "google-trend-rss",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "get-existing-posts",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "get-existing-categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "preparation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Makassar",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "72174891-58df-4cc3-9eaa-273beda5aaaf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4d0dfb9cc9abf3fa5ed57a91f51d777ee518a5a165ef7a26e1ecf825b5e4208e"
+  },
+  "id": "HbRmJEQx7W7wbRaf",
+  "tags": []
+}
